@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstdlib> //rand
 #include <fstream>
+#include <string>
 #include <vector>
 #include <ctime>
 
@@ -44,19 +45,21 @@ int main(int argc, char *argv[])
     unsigned int n_meteorQuantity = 5;
     bool b_running = true;
     double deltaTime = 0;
+    float f_starAngle = 0;
     SDL_Event event;
     Uint64 currentTime = SDL_GetTicks();
     Uint64 lastTime = 0;
     Uint32 time = 0; // Используется для ограничения FPS
-    star stars[255];
+    star stars[512];
     std::vector<planet> planets;
     std::vector<spaceShip> Jim;
     std::vector<meteor> meteorList;
+    std::vector<std::string> meteorModels;
 
-    for (int i = 0; i < 255; i++)
+    for (int i = 0; i < 512; i++)
     {
-        stars[i].f_x = rand()%n_screenWidth- n_screenWidth/2;
-        stars[i].f_y = rand()%n_screenWidth- n_screenWidth/2;
+        stars[i].f_x = rand()%(n_screenWidth+100) - (n_screenWidth+100)/2;
+        stars[i].f_y = rand()%(n_screenWidth+100) - (n_screenWidth+100)/2;
         stars[i].color[0] = float(rand()%10+5)/10;
         stars[i].color[1] = float(rand()%10)/10;
         stars[i].color[2] = float(rand()%10)/10;
@@ -72,10 +75,14 @@ int main(int argc, char *argv[])
         planets.push_back(planet(fx, fy, 10.0f, 0.0f, "./Res/Models/Planet.kjk"));
     }
     Jim.push_back(spaceShip(0.0f, 0.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
-//    Jim.push_back(spaceShip(-100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
-//    Jim.push_back(spaceShip(100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
-//    Jim.push_back(spaceShip(-100.0f, -100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
-//    Jim.push_back(spaceShip(100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
+    //    Jim.push_back(spaceShip(-100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
+    //    Jim.push_back(spaceShip(100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
+    //    Jim.push_back(spaceShip(-100.0f, -100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
+    //    Jim.push_back(spaceShip(100.0f, 100.0f, 10.0f, 90.0f, "./Res/Models/SpaceShip.kjk", &planets));
+    meteorModels.push_back(std::string("./Res/Models/Meteor1.kjk"));
+    meteorModels.push_back(std::string("./Res/Models/Meteor2.kjk"));
+    meteorModels.push_back(std::string("./Res/Models/Meteor3.kjk"));
+    meteorModels.push_back(std::string("./Res/Models/Meteor4.kjk"));
 
     initGLandSDL();
     while(b_running)
@@ -124,16 +131,30 @@ int main(int argc, char *argv[])
         gluOrtho2D(-n_screenWidth/2, n_screenWidth/2, -n_screenHeight/2, n_screenHeight/2);
         //xeDDrawCircle(0.0f, 0.0f, 15.0f, 12);
         // Draw things
+        glPushMatrix();
+        glRotatef(f_starAngle, 0, 0, 1);
         glBegin(GL_POINTS);
-        for(int i = 0; i < 256; i++)
+        for(int i = 0; i < 512; i++)
         {
             glColor3fv(stars[i].color);
+            glVertex2d(1, 100);
+            glRotatef(f_starAngle, 0, 0, 1);
             glVertex2d(stars[i].f_x, stars[i].f_y);
+            f_starAngle += 0.0005*deltaTime;
+
         }
         glColor3f(1,1,1);
         glEnd();
+        glPopMatrix();
         float sunColor[3] = {1.0f, 0.2f, 0.0f};
         xeDDrawFilledCircle(0.0f, 0.0f, 15.0f, 12, sunColor);
+        for(unsigned int i = 0; i < meteorList.size(); i++)
+            for(unsigned int j = 0; j < planets.size(); j++)
+                if (xeDistance2d(meteorList[i].f_x, meteorList[i].f_y, planets[j].f_x, planets[j].f_y) < 15)
+                    meteorList.erase(meteorList.begin() + i);
+        for(unsigned int i = 0; i < meteorList.size(); i++)
+            if (xeDistance2d(meteorList[i].f_x, meteorList[i].f_y, 0, 0) < 20)
+                meteorList.erase(meteorList.begin() + i);
         for(unsigned int i = 0; i < planets.size(); i++)
         {
             planets[i].update(deltaTime);
@@ -150,12 +171,13 @@ int main(int argc, char *argv[])
         //Create meteors until != 10
         while (meteorList.size() != n_meteorQuantity)
         {
-            meteorList.push_back(meteor(rand()%640-320, 240.0f*xeRandOne(), 10.0f, 0.0f, "./Res/Models/Meteor1.kjk"));
+            int modelNum = rand()%meteorModels.size();
+            meteorList.push_back(meteor(rand()%640-320, 240.0f*xeRandOne(), 5.0f, 0.0f, meteorModels[modelNum].c_str(), &planets));
         }
         for (unsigned int i = 0; i < meteorList.size(); i++)
             if((meteorList[i].f_x > 320) | (meteorList[i].f_x < -320) | (meteorList[i].f_y > 240) | (meteorList[i].f_y < -240))
                 meteorList.erase(meteorList.begin() + i);
-       // xeDDrawCross(0.0f, 0.0f, 10.0f);
+        // xeDDrawCross(0.0f, 0.0f, 10.0f);
         // Ограничение FPS.
         if(b_FPScap && 1000/n_FPScap > int(SDL_GetTicks()-time))
         {
