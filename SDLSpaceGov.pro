@@ -10,10 +10,9 @@ SOURCES += main.cpp \
     xenfains.cpp \
     cmeteor.cpp
 
-LIBS += -lmingw32
 LIBS += -lSDL2main
-LIBS += -lglu32
-LIBS += -lopengl32
+LIBS += -lGLU
+LIBS += -lGL
 LIBS += -lSDL2
 
 HEADERS += \
